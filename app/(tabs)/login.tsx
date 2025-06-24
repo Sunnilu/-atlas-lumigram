@@ -4,12 +4,11 @@ import { Link } from 'expo-router';
 export default function Page() {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    
-      <Link href="/register">
-        <Text>Register</Text>
+      <Link href="/login">
+        <Text>Login</Text>
       </Link>
 
-      <Text>Log in to existing account</Text>
+      <Text>Create a new account</Text>
     </View>
   );
 }
