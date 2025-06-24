@@ -61,7 +61,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="profile/[id]"
+        name="profile/"
         options={{
           title: 'My Profile',
           href: null, // Prevents link generation for web

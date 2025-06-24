@@ -9,7 +9,7 @@ export default function Page() {
     <>
       <Stack.Screen options={{ title: 'My Profile' }} />
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>User Profile for: {id}</Text>
+        <Text>Profile</Text>
       </View>
     </>
   );
