@@ -1,9 +1,9 @@
-import { Text, View } from 'react-native';
+import { View, Text } from 'react-native';
 
-export default function Page() {
-    return (
-        <view style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <text>favorites</text>
-        </view>
-    );
+export default function FavoritesScreen() {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: 18 }}>❤️ Favorites Screen</Text>
+    </View>
+  );
 }
