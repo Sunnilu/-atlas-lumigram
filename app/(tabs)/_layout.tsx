@@ -7,7 +7,6 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { TabBarIcon } from '@/components/TabBarIcon';
 
 export default function TabLayout() {
@@ -22,25 +21,38 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
           },
           default: {},
         }),
-      }}>
-       <Tabs.Screen
-  name="index"
-  options={{
-    title: 'Home',
-    tabBarIcon: ({ color, focused }) => (
-      <TabBarIcon
-        name={focused ? "home" : "home-outline"}
-        color={color}
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? 'home' : 'home-outline'}
+              color={color}
+            />
+          ),
+        }}
       />
-    ),
-  }}
-/>
- 
+
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? 'search' : 'search-outline'}
+              color={color}
+            />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="profile"
         options={{
@@ -48,13 +60,11 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={28}
-              name={focused ? "person.fill" : "person"}
+              name={focused ? 'person.fill' : 'person'}
               color={color}
             />
           ),
-          
         }}
-      
       />
     </Tabs>
   );
