@@ -1,15 +1,18 @@
 import { Text, View } from 'react-native';
+import { Link } from 'expo-router';
 
 export default function Page() {
-    return (
-        <view style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <text>Search</text>
-            <link href="/profile/1">
-            <Text>Profile 1:</Text>
-            </link>
-            <link href="/profile/2">
-            <Text>Profile 2:</Text>
-            </link>
-        </view>
-    );
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Search</Text>
+      
+      <Link href="/profile/1">
+        <Text>Profile 1</Text>
+      </Link>
+
+      <Link href="/profile/2">
+        <Text>Profile 2</Text>
+      </Link>
+    </View>
+  );
 }
