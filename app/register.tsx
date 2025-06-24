@@ -5,7 +5,7 @@ export default function Page() {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Text>Register</Text>
             <link href="/login">
-                <Text>Log in to existing</Text>
+                <Text>Log in to existing account</Text>
             </link>
         </View>
     );
