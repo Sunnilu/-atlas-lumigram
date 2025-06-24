@@ -61,13 +61,15 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="profile/"
+        name="profile"
         options={{
           title: 'My Profile',
-          href: null, // Prevents link generation for web
+          href: null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name={focused ? 'person' : 'person-outline'} color={color} />
+          ),
         }}
       />
     </Tabs>
   );
 }
-
