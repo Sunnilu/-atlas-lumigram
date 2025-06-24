@@ -25,10 +25,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon
-              name={focused ? 'home' : 'home-outline'}
-              color={color}
-            />
+            <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
           ),
         }}
       />
@@ -38,10 +35,7 @@ export default function TabLayout() {
         options={{
           title: 'Search',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon
-              name={focused ? 'search' : 'search-outline'}
-              color={color}
-            />
+            <TabBarIcon name={focused ? 'search' : 'search-outline'} color={color} />
           ),
         }}
       />
@@ -51,10 +45,7 @@ export default function TabLayout() {
         options={{
           title: 'Add Post',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon
-              name={focused ? 'add' : 'add-outline'}
-              color={color}
-            />
+            <TabBarIcon name={focused ? 'add' : 'add-outline'} color={color} />
           ),
         }}
       />
@@ -64,26 +55,19 @@ export default function TabLayout() {
         options={{
           title: 'Favorites',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon
-              name={focused ? 'heart' : 'heart-outline'}
-              color={color}
-            />
+            <TabBarIcon name={focused ? 'heart' : 'heart-outline'} color={color} />
           ),
         }}
       />
 
       <Tabs.Screen
-        name="profile/index"
+        name="profile/[id]"
         options={{
           title: 'My Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon
-              name={focused ? 'person' : 'person-outline'}
-              color={color}
-            />
-          ),
+          href: null, // Prevents link generation for web
         }}
       />
     </Tabs>
   );
 }
+
