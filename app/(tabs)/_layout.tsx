@@ -9,17 +9,19 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { TabBarIcon } from '@/components/TabBarIcon';
+import { LogoutComponent } from '@/components/LogoutComponent';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: true,
-      }}
-    >
+ return (
+  <Tabs
+    screenOptions={{
+      tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+      headerShown: true,
+      headerRight: () => <LogoutComponent />, // ✅ Properly closed component
+    }}
+  >
       <Tabs.Screen
         name="index"
         options={{
