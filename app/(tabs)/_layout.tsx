@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
-import { SplashScreen } from 'expo-splash-screen';
+import SplashScreen from 'expo-splash-screen';
 import { Tabs } from 'expo-router';
 import { useFonts } from 'expo-font';
 import {
