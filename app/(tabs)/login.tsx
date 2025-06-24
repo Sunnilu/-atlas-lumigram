@@ -9,7 +9,7 @@ export default function Page() {
         <Text>Register</Text>
       </Link>
 
-      <Text>Create a new account</Text>
+      <Text>Log in to existing account</Text>
     </View>
   );
 }
