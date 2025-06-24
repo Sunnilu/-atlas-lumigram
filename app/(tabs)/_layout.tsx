@@ -1,8 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
@@ -14,14 +12,20 @@ import { LogoutComponent } from '@/components/LogoutComponent';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
- return (
-  <Tabs
-    screenOptions={{
-      tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-      headerShown: true,
-      headerRight: () => <LogoutComponent />, // ✅ Properly closed component
-    }}
-  >
+  return (
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        headerShown: true,
+        headerRight: () => <LogoutComponent />,
+        tabBarButton: HapticTab,
+        tabBarBackground: TabBarBackground,
+        tabBarStyle: Platform.select({
+          ios: { position: 'absolute' },
+          default: {},
+        }),
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -31,7 +35,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="search"
         options={{
@@ -41,7 +44,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="add-post"
         options={{
@@ -51,7 +53,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="favorites"
         options={{
@@ -61,15 +62,20 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: 'My Profile',
-          href: null,
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name={focused ? 'person' : 'person-outline'} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile/[id]"
+        options={{
+          title: 'My Profile',
+          href: null, // prevents linking in web context
         }}
       />
     </Tabs>
