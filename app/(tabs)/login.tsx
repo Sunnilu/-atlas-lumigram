@@ -4,7 +4,7 @@ import { Link } from 'expo-router';
 export default function Page() {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Link href="/login">
+      <Link href="/login" replace>
         <Text>Login</Text>
       </Link>
 
