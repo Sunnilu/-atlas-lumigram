@@ -1,19 +1,26 @@
 import { Text, View, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+import { useState } from 'react';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   return (
     <View style={styles.container}>
       <Text style={styles.logo}>Atlas{"\n"}<Text style={styles.school}>SCHOOL</Text></Text>
+
       <Text style={styles.loginTitle}>Login</Text>
 
       <TextInput
         style={styles.input}
         placeholder="Email"
         placeholderTextColor="#ccc"
+        value={email}
+        onChangeText={setEmail}
         keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -21,10 +28,12 @@ export default function LoginScreen() {
         placeholder="Password"
         placeholderTextColor="#ccc"
         secureTextEntry
+        value={password}
+        onChangeText={setPassword}
       />
 
-      <Pressable style={styles.signInButton} onPress={() => router.push('/(tabs)')}>
-        <Text style={styles.signInText}>Sign in</Text>
+      <Pressable style={styles.signInButton} onPress={() => router.replace('/(tabs)')}>
+        <Text style={styles.signInText}>Sign In</Text>
       </Pressable>
 
       <Link href="/register" asChild>
