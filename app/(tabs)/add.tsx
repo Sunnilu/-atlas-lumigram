@@ -1,4 +1,3 @@
-// app/(tabs)/add.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -45,7 +44,11 @@ export default function AddPostScreen() {
     <View style={styles.container}>
       <Pressable onPress={pickImage}>
         <Image
-          source={image ? { uri: image } : require('@/assets/images/placeholder-image.png')}
+          source={
+            image
+              ? { uri: image }
+              : require('../../assets/images/placeholder.png')
+          }
           style={styles.image}
         />
       </Pressable>
