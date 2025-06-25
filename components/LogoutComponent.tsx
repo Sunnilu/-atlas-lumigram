@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { GestureResponderEvent, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
@@ -10,8 +10,12 @@ export function LogoutComponent() {
     router.replace('/login'); // redirect to login screen
   }
 
+  function Logout(event: GestureResponderEvent): void {
+    throw new Error('Function not implemented.');
+  }
+
   return (
-    <Pressable onPress={handleLogout} style={styles.button}>
+    <Pressable onPress={Logout}>
       <Ionicons name="log-out-outline" size={24} />
     </Pressable>
   );
