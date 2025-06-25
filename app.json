@@ -16,10 +16,12 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images."
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images.",
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos."
       }
     },
     "android": {
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -42,7 +44,8 @@
       ],
       "expo-sqlite",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "expo-image-picker"
     ],
     "experiments": {
       "typedRoutes": true
