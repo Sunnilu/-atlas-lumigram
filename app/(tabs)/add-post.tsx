@@ -1,4 +1,3 @@
-// app/(tabs)/add-post.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -18,12 +17,12 @@ export default function AddPostScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required to access media library.');
+      Alert.alert('Permission denied', 'We need access to your photos to select an image.');
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ still valid
       quality: 1,
     });
 
@@ -48,7 +47,7 @@ export default function AddPostScreen() {
           source={
             image
               ? { uri: image }
-              : require('@/assets/images/placeholder.png') // ensure correct path
+              : require('@/assets/images/placeholder.png') // ✅ update if yours is named differently
           }
           style={styles.image}
         />
