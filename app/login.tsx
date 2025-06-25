@@ -10,7 +10,7 @@ export default function Page() {
       </Link>
 
       <Text>Create a new account</Text>
-      <Pressable onPress={() => router.push('/(tabs)')}>
+      <Pressable onPress={() => router.push('/')}>
         <Text>Sign In</Text>
       </Pressable>
     </View>
