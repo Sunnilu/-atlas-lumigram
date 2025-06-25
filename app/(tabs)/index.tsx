@@ -13,7 +13,7 @@ import {
   LongPressGestureHandler,
   State,
 } from 'react-native-gesture-handler';
-import placeholderData from '@/data/placeholder';
+import { homeFeed } from '@/constants/placeholder'; // ✅ adjust path if needed
 
 export default function HomeScreen() {
   const [showCaption, setShowCaption] = useState<{ [key: string]: boolean }>({});
@@ -29,7 +29,7 @@ export default function HomeScreen() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <FlatList
-        data={placeholderData}
+        data={homeFeed}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <LongPressGestureHandler
@@ -52,7 +52,7 @@ export default function HomeScreen() {
                 <Image source={{ uri: item.image }} style={styles.image} />
                 {showCaption[item.id] && (
                   <View style={styles.captionBox}>
-                    <Text style={styles.captionText}>Placeholder caption</Text>
+                    <Text style={styles.captionText}>{item.caption}</Text>
                   </View>
                 )}
               </View>
@@ -67,7 +67,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#000542', // Matches screenshot background
   },
   imageWrapper: {
     marginVertical: 8,
