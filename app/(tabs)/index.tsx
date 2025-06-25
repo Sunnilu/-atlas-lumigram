@@ -7,13 +7,8 @@ import {
   StyleSheet,
   FlatList,
 } from 'react-native';
-import {
-  GestureHandlerRootView,
-  TapGestureHandler,
-  LongPressGestureHandler,
-  State,
-} from 'react-native-gesture-handler';
-import { homeFeed } from '@/constants/placeholder'; // ✅ adjust path if needed
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { homeFeed } from '@/constants/placeholder';
 
 export default function HomeScreen() {
   const [showCaption, setShowCaption] = useState<{ [key: string]: boolean }>({});
@@ -26,48 +21,48 @@ export default function HomeScreen() {
     setShowCaption((prev) => ({ ...prev, [id]: true }));
   };
 
+  const renderItem = ({ item }: any) => {
+    const doubleTapGesture = Gesture.Tap()
+      .numberOfTaps(2)
+      .onEnd((_event, success) => {
+        if (success) handleDoubleTap();
+      });
+
+    const longPressGesture = Gesture.LongPress()
+      .minDuration(600)
+      .onStart(() => handleLongPress(item.id));
+
+    const composedGesture = Gesture.Race(doubleTapGesture, longPressGesture);
+
+    return (
+      <GestureDetector gesture={composedGesture}>
+        <View style={styles.imageWrapper}>
+          <Image source={{ uri: item.image }} style={styles.image} />
+          {showCaption[item.id] && (
+            <View style={styles.captionBox}>
+              <Text style={styles.captionText}>{item.caption}</Text>
+            </View>
+          )}
+        </View>
+      </GestureDetector>
+    );
+  };
+
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <View style={styles.container}>
       <FlatList
         data={homeFeed}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <LongPressGestureHandler
-            onHandlerStateChange={({ nativeEvent }) => {
-              if (nativeEvent.state === State.ACTIVE) {
-                handleLongPress(item.id);
-              }
-            }}
-            minDurationMs={600}
-          >
-            <TapGestureHandler
-              numberOfTaps={2}
-              onHandlerStateChange={({ nativeEvent }) => {
-                if (nativeEvent.state === State.ACTIVE) {
-                  handleDoubleTap();
-                }
-              }}
-            >
-              <View style={styles.imageWrapper}>
-                <Image source={{ uri: item.image }} style={styles.image} />
-                {showCaption[item.id] && (
-                  <View style={styles.captionBox}>
-                    <Text style={styles.captionText}>{item.caption}</Text>
-                  </View>
-                )}
-              </View>
-            </TapGestureHandler>
-          </LongPressGestureHandler>
-        )}
+        renderItem={renderItem}
       />
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000542', // Matches screenshot background
+    backgroundColor: '#000542',
   },
   imageWrapper: {
     marginVertical: 8,
