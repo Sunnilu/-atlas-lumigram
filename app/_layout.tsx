@@ -26,22 +26,15 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  // Prevent app from rendering until fonts are loaded
-  if (!loaded) {
-    return null;
-  }
+  if (!loaded) return null;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {/* Start in the (tabs) layout – i.e., Home screen */}
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-        {/* Optional: include auth routes for direct access */}
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ headerShown: false }} />
-
-        {/* Fallback for 404 pages */}
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* 👇 Make login the default route on first app load */}
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register" />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
