@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   StyleSheet,
   Image,
   Pressable,
+  Alert,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useNavigation } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 // Example user data
 const users = [
@@ -20,10 +22,25 @@ const users = [
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
+  const navigation = useNavigation();
 
   const filteredUsers = users.filter((user) =>
     user.username.toLowerCase().includes(query.toLowerCase())
   );
+
+  // Add top-right icon button
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => Alert.alert('Top right button pressed')}
+          style={{ paddingRight: 16 }}
+        >
+          <Ionicons name="log-out-outline" size={24} color="#4ce0b3" />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
