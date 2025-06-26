@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { LogoutComponent } from '@/components/LogoutComponent';
 
 export default function EditProfileScreen() {
@@ -19,7 +19,7 @@ export default function EditProfileScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'], // ✅ modern usage — no warning
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
@@ -32,35 +32,36 @@ export default function EditProfileScreen() {
 
   const saveProfile = () => {
     Alert.alert('✅ Profile updated!');
-    router.back();
+    router.back(); // Go back to Profile tab
   };
 
   return (
-    <>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           title: 'Edit Profile',
           headerRight: () => <LogoutComponent />,
         }}
       />
-      <View style={styles.container}>
-        <Pressable onPress={pickImage}>
-          <Image source={{ uri: image }} style={styles.avatar} />
-        </Pressable>
 
-        <TextInput
-          style={styles.input}
-          value={username}
-          onChangeText={setUsername}
-          placeholder="Enter username"
-          placeholderTextColor="#888"
-        />
+      <Text style={styles.title}>Edit Profile</Text>
 
-        <Pressable style={styles.button} onPress={saveProfile}>
-          <Text style={styles.buttonText}>Save profile</Text>
-        </Pressable>
-      </View>
-    </>
+      <Pressable onPress={pickImage}>
+        <Image source={{ uri: image }} style={styles.avatar} />
+      </Pressable>
+
+      <TextInput
+        style={styles.input}
+        value={username}
+        onChangeText={setUsername}
+        placeholder="Enter username"
+        placeholderTextColor="#888"
+      />
+
+      <Pressable style={styles.button} onPress={saveProfile}>
+        <Text style={styles.buttonText}>Save profile</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -70,6 +71,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#f4f4f4',
     alignItems: 'center',
     paddingTop: 60,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 20,
   },
   avatar: {
     width: 120,
