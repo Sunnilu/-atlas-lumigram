@@ -1,4 +1,3 @@
-// app/edit-profile.tsx
 import { useState } from 'react';
 import {
   View,
@@ -10,7 +9,8 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { LogoutComponent } from '@/components/LogoutComponent';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -36,25 +36,31 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Edit Profile</Text>
-
-      <Pressable onPress={pickImage}>
-        <Image source={{ uri: image }} style={styles.avatar} />
-      </Pressable>
-
-      <TextInput
-        style={styles.input}
-        value={username}
-        onChangeText={setUsername}
-        placeholder="Enter username"
-        placeholderTextColor="#888"
+    <>
+      <Stack.Screen
+        options={{
+          title: 'Edit Profile',
+          headerRight: () => <LogoutComponent />,
+        }}
       />
+      <View style={styles.container}>
+        <Pressable onPress={pickImage}>
+          <Image source={{ uri: image }} style={styles.avatar} />
+        </Pressable>
 
-      <Pressable style={styles.button} onPress={saveProfile}>
-        <Text style={styles.buttonText}>Save profile</Text>
-      </Pressable>
-    </View>
+        <TextInput
+          style={styles.input}
+          value={username}
+          onChangeText={setUsername}
+          placeholder="Enter username"
+          placeholderTextColor="#888"
+        />
+
+        <Pressable style={styles.button} onPress={saveProfile}>
+          <Text style={styles.buttonText}>Save profile</Text>
+        </Pressable>
+      </View>
+    </>
   );
 }
 
@@ -64,11 +70,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f4f4f4',
     alignItems: 'center',
     paddingTop: 60,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 20,
   },
   avatar: {
     width: 120,
