@@ -1,11 +1,31 @@
-import { Text, View, TextInput, Pressable, StyleSheet } from 'react-native';
+import { Text, View, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase'; // make sure this points to your firebase config
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.replace('/(tabs)'); // redirect to tabs/home screen
+    } catch (error: any) {
+      Alert.alert('Login failed', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -32,8 +52,14 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
 
-      <Pressable style={styles.signInButton} onPress={() => router.replace('/(tabs)')}>
-        <Text style={styles.signInText}>Sign In</Text>
+      <Pressable
+        style={[styles.signInButton, loading && { opacity: 0.6 }]}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.signInText}>
+          {loading ? 'Signing in...' : 'Sign In'}
+        </Text>
       </Pressable>
 
       <Link href="/register" asChild>
