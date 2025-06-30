@@ -1,13 +1,19 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase'; // ✅ Adjust path if needed
 
 export function LogoutComponent() {
   const router = useRouter();
 
-  function handleLogout() {
-    // Optional: clear auth state or token here
-    router.replace('/login'); // Navigate to login screen
+  async function handleLogout() {
+    try {
+      await signOut(auth);
+      router.replace('/login');
+    } catch (error: any) {
+      Alert.alert('Logout Failed', error.message);
+    }
   }
 
   return (
