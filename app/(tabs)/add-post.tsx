@@ -1,4 +1,4 @@
-// app/(tabs)/add-post.tsx
+// app/(tabs)/addPost.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -8,25 +8,25 @@ import {
   Pressable,
   Image,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { getAuth } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { storage, db, auth } from '@/lib/firebase';
+import { storage, db } from '@/lib/firebase'; // 👈 make sure these are exported from your firebase.ts
+
+// ✅ STEP 1: Add this function here
+const uriToBlob = async (uri: string): Promise<Blob> => {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  return blob;
+};
 
 export default function AddPostScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [uploading, setUploading] = useState(false);
 
   const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission denied', 'We need access to your photos to select an image.');
-      return;
-    }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       aspect: [1, 1],
@@ -38,44 +38,41 @@ export default function AddPostScreen() {
     }
   };
 
-  const uploadPost = async () => {
-    if (!image || !caption.trim()) {
-      Alert.alert('Missing data', 'Please select an image and write a caption.');
+  const handleSave = async () => {
+    if (!image || !caption) {
+      Alert.alert('Missing data', 'Please select an image and enter a caption.');
       return;
     }
 
     try {
-      setUploading(true);
-      const response = await fetch(image);
-      const blob = await response.blob();
+      const blob = await uriToBlob(image); // ✅ STEP 2: Convert image URI to blob
+      const filename = `posts/${Date.now()}.jpg`;
+      const storageRef = ref(storage, filename);
 
-      const filename = `${Date.now()}.jpg`;
-      const imageRef = ref(storage, `posts/${filename}`);
+      await uploadBytes(storageRef, blob); // ✅ STEP 3: Upload blob
+      const imageUrl = await getDownloadURL(storageRef);
 
-      await uploadBytes(imageRef, blob);
-      const downloadURL = await getDownloadURL(imageRef);
-
-      const user = auth.currentUser;
-
-      if (!user) throw new Error('User not authenticated.');
+      const user = getAuth().currentUser;
 
       await addDoc(collection(db, 'posts'), {
-        imageUrl: downloadURL,
-        caption: caption.trim(),
+        imageUrl,
+        caption,
         createdAt: serverTimestamp(),
-        userId: user.uid,
+        userId: user?.uid ?? 'anonymous',
       });
 
       Alert.alert('✅ Post uploaded!');
       setImage(null);
       setCaption('');
-    } catch (error) {
-      console.error('Upload error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      Alert.alert('Upload failed', errorMessage);
-    } finally {
-      setUploading(false);
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      Alert.alert('Upload failed', error.message);
     }
+  };
+
+  const handleReset = () => {
+    setImage(null);
+    setCaption('');
   };
 
   return (
@@ -99,21 +96,18 @@ export default function AddPostScreen() {
         onChangeText={setCaption}
       />
 
-      <Pressable style={styles.saveButton} onPress={uploadPost} disabled={uploading}>
-        {uploading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.saveButtonText}>Upload Post</Text>
-        )}
+      <Pressable style={styles.saveButton} onPress={handleSave}>
+        <Text style={styles.saveButtonText}>Save</Text>
       </Pressable>
 
-      <Pressable onPress={() => { setImage(null); setCaption(''); }}>
+      <Pressable onPress={handleReset}>
         <Text style={styles.resetText}>Reset</Text>
       </Pressable>
     </View>
   );
 }
 
+// ✅ Your existing styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
