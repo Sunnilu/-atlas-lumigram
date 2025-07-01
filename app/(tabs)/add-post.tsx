@@ -1,3 +1,4 @@
+// app/(tabs)/add-post.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -11,17 +12,24 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { storage, db, auth } from '@/lib/firebase';
 
 export default function AddPostScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission denied', 'We need access to your photos to select an image.');
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
       quality: 1,
     });
 
@@ -30,48 +38,43 @@ export default function AddPostScreen() {
     }
   };
 
-  const uploadImage = async (uri: string): Promise<string> => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const fileName = `posts/${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    const imageRef = ref(storage, fileName);
-
-    await uploadBytes(imageRef, blob);
-    return await getDownloadURL(imageRef);
-  };
-
-  const handleSave = async () => {
-    if (!image || !caption) {
-      Alert.alert('Error', 'Image and caption are required.');
+  const uploadPost = async () => {
+    if (!image || !caption.trim()) {
+      Alert.alert('Missing data', 'Please select an image and write a caption.');
       return;
     }
 
     try {
-      setLoading(true);
-      const imageUrl = await uploadImage(image);
+      setUploading(true);
+      const response = await fetch(image);
+      const blob = await response.blob();
+
+      const filename = `${Date.now()}.jpg`;
+      const imageRef = ref(storage, `posts/${filename}`);
+
+      await uploadBytes(imageRef, blob);
+      const downloadURL = await getDownloadURL(imageRef);
+
       const user = auth.currentUser;
 
+      if (!user) throw new Error('User not authenticated.');
+
       await addDoc(collection(db, 'posts'), {
-        imageUrl,
-        caption,
+        imageUrl: downloadURL,
+        caption: caption.trim(),
         createdAt: serverTimestamp(),
-        userId: user?.uid || 'anonymous',
+        userId: user.uid,
       });
 
       Alert.alert('✅ Post uploaded!');
       setImage(null);
       setCaption('');
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Upload failed', 'Something went wrong.');
+    } catch (error) {
+      console.error('Upload error:', error);
+      Alert.alert('Upload failed', error.message);
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
-  };
-
-  const handleReset = () => {
-    setImage(null);
-    setCaption('');
   };
 
   return (
@@ -95,19 +98,17 @@ export default function AddPostScreen() {
         onChangeText={setCaption}
       />
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#4EE0BC" />
-      ) : (
-        <>
-          <Pressable style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save</Text>
-          </Pressable>
+      <Pressable style={styles.saveButton} onPress={uploadPost} disabled={uploading}>
+        {uploading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.saveButtonText}>Upload Post</Text>
+        )}
+      </Pressable>
 
-          <Pressable onPress={handleReset}>
-            <Text style={styles.resetText}>Reset</Text>
-          </Pressable>
-        </>
-      )}
+      <Pressable onPress={() => { setImage(null); setCaption(''); }}>
+        <Text style={styles.resetText}>Reset</Text>
+      </Pressable>
     </View>
   );
 }
