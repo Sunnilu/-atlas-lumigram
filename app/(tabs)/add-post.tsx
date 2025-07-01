@@ -71,7 +71,8 @@ export default function AddPostScreen() {
       setCaption('');
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert('Upload failed', error.message);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      Alert.alert('Upload failed', errorMessage);
     } finally {
       setUploading(false);
     }
