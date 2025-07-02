@@ -9,12 +9,27 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { getAuth } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { storage, db } from '@/lib/firebase'; // ✅ Make sure these are correctly exported
+import { initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
-// ✅ Helper function to convert image URI to Blob
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: 'AIzaSyAow7_HkDwFMRyWKPt-CDNB2aM_dDHZNfY',
+  authDomain: 'atlas-lumigram-d7ebe.firebaseapp.com',
+  projectId: 'atlas-lumigram-d7ebe',
+  storageBucket: 'atlas-lumigram-d7ebe.appspot.com',
+  messagingSenderId: '823121526760',
+  appId: '1:823121526760:web:4d2789cd3adb1a0716ee5d',
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Helper function to convert image URI to Blob
 const uriToBlob = async (uri: string): Promise<Blob> => {
   const response = await fetch(uri);
   const blob = await response.blob();
@@ -24,8 +39,9 @@ const uriToBlob = async (uri: string): Promise<Blob> => {
 export default function AddPostScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  // ✅ Pick image from gallery
+  // Pick image from gallery
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -34,9 +50,10 @@ export default function AddPostScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 1,
+      quality: 0.8,
     });
 
     if (!result.canceled && result.assets.length > 0) {
@@ -44,14 +61,14 @@ export default function AddPostScreen() {
     }
   };
 
-  // ✅ Upload image & save post
+  // Upload image & save post
   const handleSave = async () => {
     if (!image || !caption) {
       Alert.alert('Missing data', 'Please select an image and enter a caption.');
       return;
     }
 
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) {
       Alert.alert('Error', 'You must be logged in to upload a post.');
       return;
@@ -62,9 +79,24 @@ export default function AddPostScreen() {
       const filename = `posts/${user.uid}/${Date.now()}.jpg`;
       const storageRef = ref(storage, filename);
 
-      await uploadBytes(storageRef, blob);
-      const imageUrl = await getDownloadURL(storageRef);
+      // Track upload progress
+      const uploadTask = uploadBytesResumable(storageRef, blob);
+      uploadTask.on('state_changed', (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      });
 
+      await new Promise<void>((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          undefined,
+          (error) => reject(error),
+          () => resolve()
+        );
+      });
+
+      const imageUrl = await getDownloadURL(storageRef);
+      
       await addDoc(collection(db, 'posts'), {
         imageUrl,
         caption,
@@ -75,6 +107,7 @@ export default function AddPostScreen() {
       Alert.alert('✅ Post uploaded successfully!');
       setImage(null);
       setCaption('');
+      setUploadProgress(0);
     } catch (error: any) {
       console.error('Upload failed:', error);
       Alert.alert('Upload failed', error.message || 'Please try again.');
@@ -84,21 +117,20 @@ export default function AddPostScreen() {
   const handleReset = () => {
     setImage(null);
     setCaption('');
+    setUploadProgress(0);
   };
 
   return (
     <View style={styles.container}>
       <Pressable onPress={pickImage}>
         <Image
-          source={
-            image
-              ? { uri: image }
-              : require('@/assets/images/placeholder.png') // Replace if you use a different path
-          }
+          source={{
+            uri: image || 'placeholder.png'
+          }}
           style={styles.image}
         />
       </Pressable>
-
+      
       <TextInput
         placeholder="Add a caption"
         placeholderTextColor="#999"
@@ -106,11 +138,17 @@ export default function AddPostScreen() {
         value={caption}
         onChangeText={setCaption}
       />
-
+      
       <Pressable style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Save</Text>
       </Pressable>
-
+      
+      {uploadProgress > 0 && (
+        <Text style={styles.progressText}>
+          Uploading: {uploadProgress.toFixed(1)}%
+        </Text>
+      )}
+      
       <Pressable onPress={handleReset}>
         <Text style={styles.resetText}>Reset</Text>
       </Pressable>
@@ -118,7 +156,7 @@ export default function AddPostScreen() {
   );
 }
 
-// ✅ Styles
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -159,5 +197,9 @@ const styles = StyleSheet.create({
   resetText: {
     color: '#333',
     fontSize: 16,
+  },
+  progressText: {
+    color: '#666',
+    marginBottom: 12,
   },
 });
