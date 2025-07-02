@@ -28,7 +28,6 @@ const storage = getStorage(app);
 isSupported().then((supported) => {
   if (supported) {
     const analytics = getAnalytics(app);
-    
     // Log app open event
     logEvent(analytics, 'app_open');
   }
