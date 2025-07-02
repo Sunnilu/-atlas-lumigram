@@ -11,7 +11,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import storage from '@/lib/storage'; // 🔗 Your helper with .upload()
+import storage from '@/lib/storage'; // your upload helper
 
 export default function AddPostScreen() {
   const [image, setImage] = useState<string | null>(null);
@@ -27,8 +27,8 @@ export default function AddPostScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], // ✅ Fix for deprecation warning
-      allowsEditing: true,
+mediaTypes: ImagePicker.MediaTypeOptions.Images,
+allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
