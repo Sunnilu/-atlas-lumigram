@@ -1,7 +1,6 @@
 // lib/firebase.ts
-
 import { initializeApp } from 'firebase/app';
-// import { initializeAuth, getReactNativePersistence } from 'firebase/auth/react-native';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getAuth,
@@ -9,9 +8,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  initializeAuth,
 } from 'firebase/auth';
-// import { getReactNativePersistence } from 'firebase/auth/react-native';
 import {
   getFirestore,
   collection,
@@ -33,7 +30,7 @@ import {
 } from 'firebase/storage';
 import { getAnalytics, isSupported, logEvent } from 'firebase/analytics';
 
-// ✅ Firebase configuration
+// 🔐 Firebase config
 const firebaseConfig = {
   apiKey: 'AIzaSyAow7_HkDwFMRyWKPt-CDNB2aM_dDHZNfY',
   authDomain: 'atlas-lumigram-d7ebe.firebaseapp.com',
@@ -44,17 +41,19 @@ const firebaseConfig = {
   measurementId: 'G-B6JQ611XHP',
 };
 
-// ✅ Initialize Firebase
+// 🔌 Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// ✅ Setup React Native Auth with AsyncStorage
-const auth = getAuth(app);
+// ✅ Enable persistent auth for React Native
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
 
-// ✅ Firestore & Storage
+// 🔥 Core Firebase services
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// ✅ Optional: Firebase Analytics if supported
+// 📊 Optional: Initialize analytics if supported
 isSupported().then((supported) => {
   if (supported) {
     const analytics = getAnalytics(app);
@@ -62,130 +61,65 @@ isSupported().then((supported) => {
   }
 });
 
-// ✅ Authentication utilities
+// 🔑 Auth utilities
 export const login = async (email: string, password: string) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error) {
-    console.error('Login failed:', error);
-    throw error;
-  }
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  return userCredential.user;
 };
 
 export const register = async (email: string, password: string) => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error) {
-    console.error('Registration failed:', error);
-    throw error;
-  }
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  return userCredential.user;
 };
 
 export const logout = async () => {
-  try {
-    await signOut(auth);
-  } catch (error) {
-    console.error('Logout failed:', error);
-    throw error;
-  }
+  await signOut(auth);
 };
 
-// ✅ Firestore utilities
-export const getDocument = async (collectionName: string, docId: string) => {
-  try {
-    const docRef = doc(db, collectionName, docId);
-    const docSnap = await getDoc(docRef);
-    return docSnap.data();
-  } catch (error) {
-    console.error('Failed to get document:', error);
-    throw error;
-  }
-};
-
-export const setDocument = async (
-  collectionName: string,
-  docId: string,
-  data: any
-) => {
-  try {
-    const docRef = doc(db, collectionName, docId);
-    await setDoc(docRef, data);
-  } catch (error) {
-    console.error('Failed to set document:', error);
-    throw error;
-  }
-};
-
-export const updateDocument = async (
-  collectionName: string,
-  docId: string,
-  data: any
-) => {
-  try {
-    const docRef = doc(db, collectionName, docId);
-    await updateDoc(docRef, data);
-  } catch (error) {
-    console.error('Failed to update document:', error);
-    throw error;
-  }
-};
-
-export const deleteDocument = async (collectionName: string, docId: string) => {
-  try {
-    const docRef = doc(db, collectionName, docId);
-    await deleteDoc(docRef);
-  } catch (error) {
-    console.error('Failed to delete document:', error);
-    throw error;
-  }
-};
-
-export const queryCollection = async (
-  collectionName: string,
-  queryConstraints: any[]
-) => {
-  try {
-    const q = query(collection(db, collectionName), ...queryConstraints);
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error('Failed to query collection:', error);
-    throw error;
-  }
-};
-
-// ✅ Storage utilities
-export const uploadFile = async (
-  filePath: string,
-  file: Blob | Uint8Array | ArrayBuffer
-) => {
-  try {
-    const storageRef = ref(storage, filePath);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
-  } catch (error) {
-    console.error('Failed to upload file:', error);
-    throw error;
-  }
-};
-
-export const deleteFile = async (filePath: string) => {
-  try {
-    const desertRef = ref(storage, filePath);
-    await deleteObject(desertRef);
-  } catch (error) {
-    console.error('Failed to delete file:', error);
-    throw error;
-  }
-};
-
-// ✅ Auth state listener
 export const subscribeToAuthState = (callback: (user: any) => void): (() => void) => {
   return onAuthStateChanged(auth, callback);
 };
 
-// ✅ Export core services
+// 🗃️ Firestore helpers
+export const getDocument = async (collectionName: string, docId: string) => {
+  const docRef = doc(db, collectionName, docId);
+  const docSnap = await getDoc(docRef);
+  return docSnap.data();
+};
+
+export const setDocument = async (collectionName: string, docId: string, data: any) => {
+  const docRef = doc(db, collectionName, docId);
+  await setDoc(docRef, data);
+};
+
+export const updateDocument = async (collectionName: string, docId: string, data: any) => {
+  const docRef = doc(db, collectionName, docId);
+  await updateDoc(docRef, data);
+};
+
+export const deleteDocument = async (collectionName: string, docId: string) => {
+  const docRef = doc(db, collectionName, docId);
+  await deleteDoc(docRef);
+};
+
+export const queryCollection = async (collectionName: string, queryConstraints: any[]) => {
+  const q = query(collection(db, collectionName), ...queryConstraints);
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+// 📁 Storage helpers
+export const uploadFile = async (filePath: string, file: Blob | Uint8Array | ArrayBuffer) => {
+  const storageRef = ref(storage, filePath);
+  const snapshot = await uploadBytes(storageRef, file);
+  const downloadURL = await getDownloadURL(snapshot.ref);
+  return downloadURL;
+};
+
+export const deleteFile = async (filePath: string) => {
+  const fileRef = ref(storage, filePath);
+  await deleteObject(fileRef);
+};
+
+// 🌟 Export core services
 export { app, auth, db, storage };
