@@ -1,4 +1,3 @@
-// app/(tabs)/addPost.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -13,9 +12,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { storage, db } from '@/lib/firebase'; // 👈 make sure these are exported from your firebase.ts
+import { storage, db } from '@/lib/firebase'; // ✅ Make sure these are correctly exported
 
-// ✅ STEP 1: Add this function here
+// ✅ Helper function to convert image URI to Blob
 const uriToBlob = async (uri: string): Promise<Blob> => {
   const response = await fetch(uri);
   const blob = await response.blob();
@@ -26,7 +25,14 @@ export default function AddPostScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
 
+  // ✅ Pick image from gallery
   const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission denied', 'We need access to your photos.');
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       aspect: [1, 1],
@@ -38,35 +44,40 @@ export default function AddPostScreen() {
     }
   };
 
+  // ✅ Upload image & save post
   const handleSave = async () => {
     if (!image || !caption) {
       Alert.alert('Missing data', 'Please select an image and enter a caption.');
       return;
     }
 
+    const user = getAuth().currentUser;
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to upload a post.');
+      return;
+    }
+
     try {
-      const blob = await uriToBlob(image); // ✅ STEP 2: Convert image URI to blob
-      const filename = `posts/${Date.now()}.jpg`;
+      const blob = await uriToBlob(image);
+      const filename = `posts/${user.uid}/${Date.now()}.jpg`;
       const storageRef = ref(storage, filename);
 
-      await uploadBytes(storageRef, blob); // ✅ STEP 3: Upload blob
+      await uploadBytes(storageRef, blob);
       const imageUrl = await getDownloadURL(storageRef);
-
-      const user = getAuth().currentUser;
 
       await addDoc(collection(db, 'posts'), {
         imageUrl,
         caption,
         createdAt: serverTimestamp(),
-        userId: user?.uid ?? 'anonymous',
+        userId: user.uid,
       });
 
-      Alert.alert('✅ Post uploaded!');
+      Alert.alert('✅ Post uploaded successfully!');
       setImage(null);
       setCaption('');
     } catch (error: any) {
       console.error('Upload failed:', error);
-      Alert.alert('Upload failed', error.message);
+      Alert.alert('Upload failed', error.message || 'Please try again.');
     }
   };
 
@@ -82,7 +93,7 @@ export default function AddPostScreen() {
           source={
             image
               ? { uri: image }
-              : require('@/assets/images/placeholder.png')
+              : require('@/assets/images/placeholder.png') // Replace if you use a different path
           }
           style={styles.image}
         />
@@ -107,7 +118,7 @@ export default function AddPostScreen() {
   );
 }
 
-// ✅ Your existing styles
+// ✅ Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -131,6 +142,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 20,
     backgroundColor: '#fff',
+    color: '#000',
   },
   saveButton: {
     backgroundColor: '#4EE0BC',
