@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,80 @@ import {
   Alert,
   StyleSheet,
   FlatList,
+  RefreshControl,
 } from 'react-native';
 import {
   GestureDetector,
   Gesture,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
-import { homeFeed } from '@/constants/placeholder'; // ✅ update this path if needed
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  startAfter,
+  getDocs,
+} from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 export default function FavoritesScreen() {
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showCaptions, setShowCaptions] = useState<{ [key: string]: boolean }>({});
+
+  const fetchFavorites = async (initial = false) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const favoritesRef = collection(db, 'favorites');
+    const favQuery = initial
+      ? query(
+          favoritesRef,
+          where('userId', '==', user.uid),
+          orderBy('favoritedAt', 'desc'),
+          limit(5)
+        )
+      : query(
+          favoritesRef,
+          where('userId', '==', user.uid),
+          orderBy('favoritedAt', 'desc'),
+          startAfter(lastVisible),
+          limit(5)
+        );
+
+    const snapshot = await getDocs(favQuery);
+    const newFavorites = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    if (initial) {
+      setFavorites(newFavorites);
+    } else {
+      setFavorites((prev) => [...prev, ...newFavorites]);
+    }
+
+    setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+  };
+
+  useEffect(() => {
+    fetchFavorites(true);
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchFavorites(true);
+    setRefreshing(false);
+  };
+
+  const handleLoadMore = async () => {
+    if (!loadingMore && lastVisible) {
+      setLoadingMore(true);
+      await fetchFavorites();
+      setLoadingMore(false);
+    }
+  };
 
   const renderItem = ({ item }: any) => {
     const doubleTap = Gesture.Tap()
@@ -49,9 +113,12 @@ export default function FavoritesScreen() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <FlatList
-        data={homeFeed}
+        data={favorites}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       />
     </GestureHandlerRootView>
   );
