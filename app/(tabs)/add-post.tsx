@@ -9,31 +9,27 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from 'firebase/storage';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 
-// Initialize Firebase
-const firebaseConfig = {
-  apiKey: 'AIzaSyAow7_HkDwFMRyWKPt-CDNB2aM_dDHZNfY',
-  authDomain: 'atlas-lumigram-d7ebe.firebaseapp.com',
-  projectId: 'atlas-lumigram-d7ebe',
-  storageBucket: 'atlas-lumigram-d7ebe.appspot.com',
-  messagingSenderId: '823121526760',
-  appId: '1:823121526760:web:4d2789cd3adb1a0716ee5d',
-};
+// 🔗 Import initialized Firebase instances (adjust path if needed)
+import { auth, db, storage } from '@/lib/firebase';
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-// Helper function to convert image URI to Blob
+// 📦 Convert local file URI to a Blob
 const uriToBlob = async (uri: string): Promise<Blob> => {
   const response = await fetch(uri);
-  const blob = await response.blob();
-  return blob;
+  return await response.blob();
 };
 
 export default function AddPostScreen() {
@@ -41,11 +37,11 @@ export default function AddPostScreen() {
   const [caption, setCaption] = useState('');
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  // Pick image from gallery
+  // 📷 Launch Image Picker
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission denied', 'We need access to your photos.');
+      Alert.alert('Permission required', 'Please allow access to your photos.');
       return;
     }
 
@@ -61,7 +57,7 @@ export default function AddPostScreen() {
     }
   };
 
-  // Upload image & save post
+  // 💾 Save post to Firebase
   const handleSave = async () => {
     if (!image || !caption) {
       Alert.alert('Missing data', 'Please select an image and enter a caption.');
@@ -70,7 +66,7 @@ export default function AddPostScreen() {
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to upload a post.');
+      Alert.alert('Error', 'You must be logged in to upload.');
       return;
     }
 
@@ -79,38 +75,36 @@ export default function AddPostScreen() {
       const filename = `posts/${user.uid}/${Date.now()}.jpg`;
       const storageRef = ref(storage, filename);
 
-      // Track upload progress
       const uploadTask = uploadBytesResumable(storageRef, blob);
-      uploadTask.on('state_changed', (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      });
 
-      await new Promise<void>((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          undefined,
-          (error) => reject(error),
-          () => resolve()
-        );
-      });
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
+        },
+        (error) => {
+          console.error('Upload error:', error);
+          Alert.alert('Upload failed', error.message || 'Unexpected error');
+        },
+        async () => {
+          const imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          await addDoc(collection(db, 'posts'), {
+            imageUrl,
+            caption,
+            createdAt: serverTimestamp(),
+            userId: user.uid,
+          });
 
-      const imageUrl = await getDownloadURL(storageRef);
-      
-      await addDoc(collection(db, 'posts'), {
-        imageUrl,
-        caption,
-        createdAt: serverTimestamp(),
-        userId: user.uid,
-      });
-
-      Alert.alert('✅ Post uploaded successfully!');
-      setImage(null);
-      setCaption('');
-      setUploadProgress(0);
+          Alert.alert('✅ Post uploaded successfully!');
+          setImage(null);
+          setCaption('');
+          setUploadProgress(0);
+        }
+      );
     } catch (error: any) {
       console.error('Upload failed:', error);
-      Alert.alert('Upload failed', error.message || 'Please try again.');
+      Alert.alert('Upload failed', error.message || 'Unexpected error occurred.');
     }
   };
 
@@ -124,13 +118,13 @@ export default function AddPostScreen() {
     <View style={styles.container}>
       <Pressable onPress={pickImage}>
         <Image
-          source={{
-            uri: image || 'placeholder.png'
-          }}
+          source={
+            image ? { uri: image } : require('@/assets/images/placeholder.png')
+          }
           style={styles.image}
         />
       </Pressable>
-      
+
       <TextInput
         placeholder="Add a caption"
         placeholderTextColor="#999"
@@ -138,17 +132,17 @@ export default function AddPostScreen() {
         value={caption}
         onChangeText={setCaption}
       />
-      
+
       <Pressable style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Save</Text>
       </Pressable>
-      
+
       {uploadProgress > 0 && (
         <Text style={styles.progressText}>
           Uploading: {uploadProgress.toFixed(1)}%
         </Text>
       )}
-      
+
       <Pressable onPress={handleReset}>
         <Text style={styles.resetText}>Reset</Text>
       </Pressable>
@@ -156,7 +150,7 @@ export default function AddPostScreen() {
   );
 }
 
-// Styles
+// 🎨 Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
