@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,66 +6,33 @@ import {
   Alert,
   StyleSheet,
   FlatList,
-  RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
-const PAGE_SIZE = 10;
+import { collection, addDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase'; // your firebase exports
+import { homeFeed } from '@/constants/placeholder'; // use Firestore data later
 
 export default function HomeScreen() {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [lastDoc, setLastDoc] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [showCaption, setShowCaption] = useState<{ [key: string]: boolean }>({});
 
-  const fetchPosts = async (reset = false) => {
-    setLoading(true);
+  const handleDoubleTap = async (item: any) => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Login required', 'Please log in to favorite posts.');
+      return;
+    }
+
     try {
-      const postsQuery = reset
-        ? query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE))
-        : query(
-            collection(db, 'posts'),
-            orderBy('createdAt', 'desc'),
-            startAfter(lastDoc),
-            limit(PAGE_SIZE)
-          );
-
-      const snapshot = await getDocs(postsQuery);
-      const newPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      setPosts(prev => (reset ? newPosts : [...prev, ...newPosts]));
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      await addDoc(collection(db, 'favorites'), {
+        userId: user.uid,
+        postId: item.id,
+        favoritedAt: new Date(),
+      });
+      Alert.alert('✅ Favorited!');
     } catch (error) {
-      console.error('Error fetching posts:', error);
-      Alert.alert('Error', 'Failed to load posts.');
-    } finally {
-      setLoading(false);
-      if (reset) setRefreshing(false);
+      console.error('Failed to favorite:', error);
+      Alert.alert('Error', 'Could not save to favorites.');
     }
-  };
-
-  useEffect(() => {
-    fetchPosts(true);
-  }, []);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setLastDoc(null);
-    fetchPosts(true);
-  };
-
-  const handleLoadMore = () => {
-    if (!loading && lastDoc) {
-      fetchPosts();
-    }
-  };
-
-  const handleDoubleTap = () => {
-    Alert.alert('Double tapped!');
   };
 
   const handleLongPress = (id: string) => {
@@ -73,24 +40,24 @@ export default function HomeScreen() {
   };
 
   const renderItem = ({ item }: any) => {
-    const doubleTapGesture = Gesture.Tap()
+    const doubleTap = Gesture.Tap()
       .numberOfTaps(2)
-      .onEnd((_event, success) => {
-        if (success) handleDoubleTap();
+      .onEnd((_e, success) => {
+        if (success) handleDoubleTap(item);
       });
 
-    const longPressGesture = Gesture.LongPress()
-      .minDuration(600)
+    const longPress = Gesture.LongPress()
+      .minDuration(500)
       .onStart(() => handleLongPress(item.id));
 
-    const composedGesture = Gesture.Race(doubleTapGesture, longPressGesture);
+    const gesture = Gesture.Race(doubleTap, longPress);
 
     return (
-      <GestureDetector gesture={composedGesture}>
+      <GestureDetector gesture={gesture}>
         <View style={styles.imageWrapper}>
-          <Image source={{ uri: item.imageUrl }} style={styles.image} />
+          <Image source={{ uri: item.image }} style={styles.image} />
           {showCaption[item.id] && (
-            <View style={styles.captionBox}>
+            <View style={styles.captionOverlay}>
               <Text style={styles.captionText}>{item.caption}</Text>
             </View>
           )}
@@ -101,18 +68,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {loading && posts.length === 0 ? (
-        <ActivityIndicator size="large" color="#4EE0BC" />
-      ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.2}
-        />
-      )}
+      <FlatList
+        data={homeFeed} // replace with Firestore posts later
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+      />
     </View>
   );
 }
@@ -123,8 +83,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000542',
   },
   imageWrapper: {
-    marginVertical: 8,
-    marginHorizontal: 12,
+    marginVertical: 10,
+    marginHorizontal: 16,
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
@@ -134,13 +94,13 @@ const styles = StyleSheet.create({
     height: 250,
     borderRadius: 12,
   },
-  captionBox: {
+  captionOverlay: {
     position: 'absolute',
     bottom: 10,
     left: 10,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 6,
-    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
+    borderRadius: 6,
   },
   captionText: {
     color: '#fff',
