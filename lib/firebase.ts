@@ -1,7 +1,6 @@
-// lib/firebase.ts
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore'; // ✅ use this
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -14,10 +13,15 @@ const firebaseConfig = {
   measurementId: 'G-B6JQ611XHP',
 };
 
-// Initialize Firebase
+// ✅ initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// ✅ Use long polling (only this once!)
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
+
 const auth = getAuth(app);
-const db = getFirestore(app);
 const storage = getStorage(app);
 
 export { app, auth, db, storage };
