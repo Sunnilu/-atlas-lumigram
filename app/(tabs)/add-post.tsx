@@ -9,63 +9,19 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import {
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-} from 'firebase/storage';
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { auth, db, storage } from '@/lib/firebase';
-
-// 🔁 Converts local URI to Blob for Firebase upload
-const uriToBlob = async (uri: string): Promise<Blob> => {
-  const response = await fetch(uri);
-  return await response.blob();
-};
-
-// ☁️ Uploads image to Firebase Storage and returns download URL
-const saveImageToStorage = async (
-  uri: string,
-  userId: string,
-  onProgress?: (progress: number) => void
-): Promise<string> => {
-  const blob = await uriToBlob(uri);
-  const filename = `posts/${userId}/${Date.now()}.jpg`;
-  const storageRef = ref(storage, filename);
-
-  const uploadTask = uploadBytesResumable(storageRef, blob);
-
-  return new Promise((resolve, reject) => {
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        if (onProgress) onProgress(progress);
-      },
-      (error) => reject(error),
-      async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        resolve(downloadURL);
-      }
-    );
-  });
-};
+import { auth, db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import storage from '@/lib/storage'; // 👈 your upload helper
 
 export default function AddPostScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploading, setUploading] = useState(false);
 
-  // 📷 Image Picker
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'Please allow access to your photos.');
+      Alert.alert('Permission denied', 'We need access to your photos.');
       return;
     }
 
@@ -81,8 +37,7 @@ export default function AddPostScreen() {
     }
   };
 
-  // 💾 Save to Firestore + Storage
-  const handleSave = async () => {
+  const save = async () => {
     if (!image || !caption) {
       Alert.alert('Missing data', 'Please select an image and enter a caption.');
       return;
@@ -90,34 +45,38 @@ export default function AddPostScreen() {
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to upload.');
+      Alert.alert('Not logged in', 'You must be logged in to post.');
       return;
     }
 
     try {
-      const imageUrl = await saveImageToStorage(image, user.uid, setUploadProgress);
+      setUploading(true);
+
+      const name = image.split('/').pop() || `image_${Date.now()}.jpg`;
+      const { downloadURL, metadata } = await storage.upload(image, name, 'post');
 
       await addDoc(collection(db, 'posts'), {
-        imageUrl,
+        imageUrl: downloadURL,
         caption,
         createdAt: serverTimestamp(),
         userId: user.uid,
+        metadata,
       });
 
-      Alert.alert('✅ Post uploaded successfully!');
+      Alert.alert('✅ Post uploaded!');
       setImage(null);
       setCaption('');
-      setUploadProgress(0);
     } catch (error: any) {
       console.error('Upload failed:', error);
-      Alert.alert('Upload failed', error.message || 'Unexpected error occurred.');
+      Alert.alert('Upload failed', error.message || 'Unknown error.');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleReset = () => {
+  const reset = () => {
     setImage(null);
     setCaption('');
-    setUploadProgress(0);
   };
 
   return (
@@ -139,24 +98,20 @@ export default function AddPostScreen() {
         onChangeText={setCaption}
       />
 
-      <Pressable style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Save</Text>
+      <Pressable style={styles.saveButton} onPress={save} disabled={uploading}>
+        <Text style={styles.saveButtonText}>
+          {uploading ? 'Uploading...' : 'Save'}
+        </Text>
       </Pressable>
 
-      {uploadProgress > 0 && (
-        <Text style={styles.progressText}>
-          Uploading: {uploadProgress.toFixed(1)}%
-        </Text>
-      )}
-
-      <Pressable onPress={handleReset}>
+      <Pressable onPress={reset}>
         <Text style={styles.resetText}>Reset</Text>
       </Pressable>
     </View>
   );
 }
 
-// 🎨 Styles
+// 💅 Styling
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -197,9 +152,5 @@ const styles = StyleSheet.create({
   resetText: {
     color: '#333',
     fontSize: 16,
-  },
-  progressText: {
-    color: '#666',
-    marginBottom: 12,
   },
 });
