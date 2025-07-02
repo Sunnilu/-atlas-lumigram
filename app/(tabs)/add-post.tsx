@@ -11,13 +11,14 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import storage from '@/lib/storage'; // 👈 your upload helper
+import storage from '@/lib/storage'; // 🔗 Your helper with .upload()
 
 export default function AddPostScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
 
+  // 📸 Open media library
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -26,7 +27,7 @@ export default function AddPostScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'], // ✅ Fix for deprecation warning
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -37,6 +38,7 @@ export default function AddPostScreen() {
     }
   };
 
+  // 💾 Save post to Firestore + Firebase Storage
   const save = async () => {
     if (!image || !caption) {
       Alert.alert('Missing data', 'Please select an image and enter a caption.');
@@ -111,7 +113,7 @@ export default function AddPostScreen() {
   );
 }
 
-// 💅 Styling
+// 🎨 Styling
 const styles = StyleSheet.create({
   container: {
     flex: 1,
