@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,63 @@ import {
   Alert,
   StyleSheet,
   FlatList,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { homeFeed } from '@/constants/placeholder';
+import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+const PAGE_SIZE = 10;
 
 export default function HomeScreen() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [showCaption, setShowCaption] = useState<{ [key: string]: boolean }>({});
+
+  const fetchPosts = async (reset = false) => {
+    setLoading(true);
+    try {
+      const postsQuery = reset
+        ? query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE))
+        : query(
+            collection(db, 'posts'),
+            orderBy('createdAt', 'desc'),
+            startAfter(lastDoc),
+            limit(PAGE_SIZE)
+          );
+
+      const snapshot = await getDocs(postsQuery);
+      const newPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      setPosts(prev => (reset ? newPosts : [...prev, ...newPosts]));
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      Alert.alert('Error', 'Failed to load posts.');
+    } finally {
+      setLoading(false);
+      if (reset) setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts(true);
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setLastDoc(null);
+    fetchPosts(true);
+  };
+
+  const handleLoadMore = () => {
+    if (!loading && lastDoc) {
+      fetchPosts();
+    }
+  };
 
   const handleDoubleTap = () => {
     Alert.alert('Double tapped!');
@@ -37,7 +88,7 @@ export default function HomeScreen() {
     return (
       <GestureDetector gesture={composedGesture}>
         <View style={styles.imageWrapper}>
-          <Image source={{ uri: item.image }} style={styles.image} />
+          <Image source={{ uri: item.imageUrl }} style={styles.image} />
           {showCaption[item.id] && (
             <View style={styles.captionBox}>
               <Text style={styles.captionText}>{item.caption}</Text>
@@ -50,11 +101,18 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={homeFeed}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-      />
+      {loading && posts.length === 0 ? (
+        <ActivityIndicator size="large" color="#4EE0BC" />
+      ) : (
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.2}
+        />
+      )}
     </View>
   );
 }
