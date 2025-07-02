@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,30 @@ import {
   FlatList,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { collection, addDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase'; // your firebase exports
-import { homeFeed } from '@/constants/placeholder'; // use Firestore data later
+import { db, auth } from '@/lib/firebase';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { homeFeed } from '@/constants/placeholder'; // Replace later with Firestore data
 
 export default function HomeScreen() {
   const [showCaption, setShowCaption] = useState<{ [key: string]: boolean }>({});
+  const [favoritePostIds, setFavoritePostIds] = useState<Set<string>>(new Set());
 
+  // ✅ Fetch user's favorites on mount
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const q = query(collection(db, 'favorites'), where('userId', '==', user.uid));
+      const snapshot = await getDocs(q);
+      const ids = snapshot.docs.map((doc) => doc.data().postId);
+      setFavoritePostIds(new Set(ids));
+    };
+
+    fetchFavorites();
+  }, []);
+
+  // ✅ Double Tap: Add to favorites in Firestore
   const handleDoubleTap = async (item: any) => {
     const user = auth.currentUser;
     if (!user) {
@@ -28,7 +45,8 @@ export default function HomeScreen() {
         postId: item.id,
         favoritedAt: new Date(),
       });
-      Alert.alert('✅ Favorited!');
+      setFavoritePostIds((prev) => new Set(prev).add(item.id));
+      Alert.alert('✅ Added to favorites!');
     } catch (error) {
       console.error('Failed to favorite:', error);
       Alert.alert('Error', 'Could not save to favorites.');
@@ -56,6 +74,9 @@ export default function HomeScreen() {
       <GestureDetector gesture={gesture}>
         <View style={styles.imageWrapper}>
           <Image source={{ uri: item.image }} style={styles.image} />
+          {favoritePostIds.has(item.id) && (
+            <Text style={styles.favoriteText}>❤️ Favorited</Text>
+          )}
           {showCaption[item.id] && (
             <View style={styles.captionOverlay}>
               <Text style={styles.captionText}>{item.caption}</Text>
@@ -69,7 +90,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={homeFeed} // replace with Firestore posts later
+        data={homeFeed}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
       />
@@ -105,5 +126,16 @@ const styles = StyleSheet.create({
   captionText: {
     color: '#fff',
     fontSize: 14,
+  },
+  favoriteText: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    color: 'white',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    fontWeight: 'bold',
   },
 });
