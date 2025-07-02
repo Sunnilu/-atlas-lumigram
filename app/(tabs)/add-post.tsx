@@ -9,27 +9,51 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { getAuth } from 'firebase/auth';
 import {
-  getStorage,
   ref,
   uploadBytesResumable,
   getDownloadURL,
 } from 'firebase/storage';
 import {
-  getFirestore,
   collection,
   addDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-
-// 🔗 Import initialized Firebase instances (adjust path if needed)
 import { auth, db, storage } from '@/lib/firebase';
 
-// 📦 Convert local file URI to a Blob
+// 🔁 Converts local URI to Blob for Firebase upload
 const uriToBlob = async (uri: string): Promise<Blob> => {
   const response = await fetch(uri);
   return await response.blob();
+};
+
+// ☁️ Uploads image to Firebase Storage and returns download URL
+const saveImageToStorage = async (
+  uri: string,
+  userId: string,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
+  const blob = await uriToBlob(uri);
+  const filename = `posts/${userId}/${Date.now()}.jpg`;
+  const storageRef = ref(storage, filename);
+
+  const uploadTask = uploadBytesResumable(storageRef, blob);
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        if (onProgress) onProgress(progress);
+      },
+      (error) => reject(error),
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        resolve(downloadURL);
+      }
+    );
+  });
 };
 
 export default function AddPostScreen() {
@@ -37,7 +61,7 @@ export default function AddPostScreen() {
   const [caption, setCaption] = useState('');
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  // 📷 Launch Image Picker
+  // 📷 Image Picker
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -57,7 +81,7 @@ export default function AddPostScreen() {
     }
   };
 
-  // 💾 Save post to Firebase
+  // 💾 Save to Firestore + Storage
   const handleSave = async () => {
     if (!image || !caption) {
       Alert.alert('Missing data', 'Please select an image and enter a caption.');
@@ -71,37 +95,19 @@ export default function AddPostScreen() {
     }
 
     try {
-      const blob = await uriToBlob(image);
-      const filename = `posts/${user.uid}/${Date.now()}.jpg`;
-      const storageRef = ref(storage, filename);
+      const imageUrl = await saveImageToStorage(image, user.uid, setUploadProgress);
 
-      const uploadTask = uploadBytesResumable(storageRef, blob);
+      await addDoc(collection(db, 'posts'), {
+        imageUrl,
+        caption,
+        createdAt: serverTimestamp(),
+        userId: user.uid,
+      });
 
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setUploadProgress(progress);
-        },
-        (error) => {
-          console.error('Upload error:', error);
-          Alert.alert('Upload failed', error.message || 'Unexpected error');
-        },
-        async () => {
-          const imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-          await addDoc(collection(db, 'posts'), {
-            imageUrl,
-            caption,
-            createdAt: serverTimestamp(),
-            userId: user.uid,
-          });
-
-          Alert.alert('✅ Post uploaded successfully!');
-          setImage(null);
-          setCaption('');
-          setUploadProgress(0);
-        }
-      );
+      Alert.alert('✅ Post uploaded successfully!');
+      setImage(null);
+      setCaption('');
+      setUploadProgress(0);
     } catch (error: any) {
       console.error('Upload failed:', error);
       Alert.alert('Upload failed', error.message || 'Unexpected error occurred.');
