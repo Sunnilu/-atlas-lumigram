@@ -9,6 +9,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import {
+  GestureDetector,
+  Gesture,
+} from 'react-native-gesture-handler';
+import {
   collection,
   getDocs,
   query,
@@ -16,15 +20,12 @@ import {
   limit,
   startAfter,
   addDoc,
-  DocumentData,
-  QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 export default function HomeScreen() {
   const [posts, setPosts] = useState<any[]>([]);
-  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [lastVisible, setLastVisible] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showCaption, setShowCaption] = useState<{ [key: string]: boolean }>({});
@@ -33,21 +34,21 @@ export default function HomeScreen() {
     try {
       const postQuery = initial
         ? query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(5))
-        : query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(lastVisible!), limit(5));
+        : query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(5));
 
       const snapshot = await getDocs(postQuery);
-      const newPosts = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const newPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       if (initial) {
         setPosts(newPosts);
       } else {
-        setPosts((prev) => [...prev, ...newPosts]);
+        setPosts(prev => [...prev, ...newPosts]);
       }
 
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1] || null);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-      Alert.alert('Error', 'Failed to load posts.');
+      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+    } catch (err) {
+      console.error('Failed to fetch posts:', err);
+      Alert.alert('Error', 'Could not fetch posts');
     }
   };
 
@@ -72,7 +73,7 @@ export default function HomeScreen() {
   const handleDoubleTap = async (item: any) => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert('Login required', 'Please log in to favorite posts.');
+      Alert.alert('Login Required', 'Please log in to favorite posts.');
       return;
     }
 
@@ -80,12 +81,14 @@ export default function HomeScreen() {
       await addDoc(collection(db, 'favorites'), {
         userId: user.uid,
         postId: item.id,
+        image: item.image,
+        caption: item.caption,
         favoritedAt: new Date(),
       });
-      Alert.alert('✅ Added to favorites!');
+      Alert.alert('✅ Favorited!');
     } catch (error) {
-      console.error('Failed to favorite:', error);
-      Alert.alert('Error', 'Could not save to favorites.');
+      console.error('Error favoriting post:', error);
+      Alert.alert('Error', 'Failed to favorite the post.');
     }
   };
 
@@ -101,13 +104,13 @@ export default function HomeScreen() {
       });
 
     const longPress = Gesture.LongPress()
-      .minDuration(500)
+      .minDuration(400)
       .onStart(() => handleLongPress(item.id));
 
-    const gesture = Gesture.Race(doubleTap, longPress);
+    const composedGesture = Gesture.Race(doubleTap, longPress);
 
     return (
-      <GestureDetector gesture={gesture}>
+      <GestureDetector gesture={composedGesture}>
         <View style={styles.imageWrapper}>
           <Image source={{ uri: item.image }} style={styles.image} />
           {showCaption[item.id] && (
@@ -128,14 +131,7 @@ export default function HomeScreen() {
         renderItem={renderItem}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No posts found</Text>
-          </View>
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       />
     </View>
   );
@@ -143,14 +139,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000542' },
-  imageWrapper: {
-    marginVertical: 10,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  image: { width: '100%', height: 250, borderRadius: 12 },
+  imageWrapper: { margin: 12, borderRadius: 12, overflow: 'hidden' },
+  image: { width: '100%', height: 250 },
   captionOverlay: {
     position: 'absolute',
     bottom: 10,
@@ -160,12 +150,4 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   captionText: { color: '#fff', fontSize: 14 },
-  emptyState: {
-    alignItems: 'center',
-    marginTop: 50,
-  },
-  emptyText: {
-    color: '#aaa',
-    fontSize: 16,
-  },
 });
